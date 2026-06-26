@@ -1,0 +1,185 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+    background: #f7f7fb;
+    color: #1f2937;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+  }
+  .wrap {
+    width: 100%;
+    max-width: 520px;
+    padding: 22px;
+    text-align: center;
+  }
+  h2 {
+    margin: 0 0 12px;
+    font-size: 22px;
+  }
+  .wheelBox {
+    position: relative;
+    width: 380px;
+    height: 380px;
+    margin: 0 auto 18px;
+  }
+  canvas {
+    width: 380px;
+    height: 380px;
+    border-radius: 50%;
+    filter: drop-shadow(0 12px 24px rgba(0,0,0,.18));
+    transition: transform 4s cubic-bezier(.12,.72,.08,1);
+  }
+  .pointer {
+    position: absolute;
+    right: -2px;
+    top: 50%;
+    width: 0;
+    height: 0;
+    transform: translateY(-50%);
+    border-top: 18px solid transparent;
+    border-bottom: 18px solid transparent;
+    border-right: 42px solid #111827;
+    z-index: 2;
+  }
+  button {
+    border: 0;
+    border-radius: 12px;
+    padding: 12px 22px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    color: white;
+    background: #2563eb;
+  }
+  button:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+  }
+  .result {
+    margin-top: 14px;
+    font-size: 20px;
+    font-weight: 800;
+    min-height: 30px;
+  }
+  .hint {
+    margin-top: 10px;
+    font-size: 13px;
+    opacity: .7;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h2>Fortune wheel</h2>
+
+    <div class="wheelBox">
+      <div class="pointer"></div>
+      <canvas id="wheel" width="760" height="760"></canvas>
+    </div>
+
+    <button id="spin">Крутить</button>
+    <div class="result" id="result"></div>
+    <div class="hint">Edit items' array in code to replace the options.</div>
+  </div>
+
+<script>
+const items = [
+  "Option 1",
+  "Option 2",
+  "Option 3",
+  "Option 4",
+  "Option 5",
+  "Option 6"
+];
+
+const colors = ["#93c5fd", "#bfdbfe", "#a7f3d0", "#fde68a", "#fecaca", "#ddd6fe"];
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+const spinBtn = document.getElementById("spin");
+const resultEl = document.getElementById("result");
+
+let rotation = 0;
+let spinning = false;
+
+function drawWheel() {
+  const size = canvas.width;
+  const cx = size / 2;
+  const cy = size / 2;
+  const radius = size / 2 - 18;
+  const slice = Math.PI * 2 / items.length;
+
+  ctx.clearRect(0, 0, size, size);
+
+  for (let i = 0; i < items.length; i++) {
+    const start = i * slice;
+    const end = start + slice;
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, radius, start, end);
+    ctx.closePath();
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.fill();
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(start + slice / 2);
+    ctx.textAlign = "right";
+    ctx.fillStyle = "#111827";
+    ctx.font = "bold 30px system-ui, sans-serif";
+    ctx.fillText(items[i], radius - 28, 10);
+    ctx.restore();
+  }
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, 54, 0, Math.PI * 2);
+  ctx.fillStyle = "#111827";
+  ctx.fill();
+
+  ctx.fillStyle = "white";
+  ctx.font = "bold 24px system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("SPIN", cx, cy + 8);
+}
+
+function getSelectedIndex(finalDegrees) {
+  const normalized = ((finalDegrees % 360) + 360) % 360;
+  const pointerAngle = 0;
+  const sliceDegrees = 360 / items.length;
+  const wheelAngleAtPointer = (360 - normalized + pointerAngle) % 360;
+  return Math.floor(wheelAngleAtPointer / sliceDegrees);
+}
+
+spinBtn.addEventListener("click", () => {
+  if (spinning) return;
+
+  spinning = true;
+  spinBtn.disabled = true;
+  resultEl.textContent = "";
+
+  const extraSpins = 5 + Math.floor(Math.random() * 4);
+  const randomStop = Math.random() * 360;
+  rotation += extraSpins * 360 + randomStop;
+
+  canvas.style.transform = "rotate(" + rotation + "deg)";
+
+  setTimeout(() => {
+    const index = getSelectedIndex(rotation);
+    resultEl.textContent = "Выпало: " + items[index];
+    spinning = false;
+    spinBtn.disabled = false;
+  }, 4200);
+});
+
+drawWheel();
+</script>
+</body>
+</html>
