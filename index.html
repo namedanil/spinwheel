@@ -1,185 +1,827 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
-<meta charset="utf-8">
-<style>
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    font-family: system-ui, -apple-system, Segoe UI, sans-serif;
-    background: #f7f7fb;
-    color: #1f2937;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-  }
-  .wrap {
-    width: 100%;
-    max-width: 520px;
-    padding: 22px;
-    text-align: center;
-  }
-  h2 {
-    margin: 0 0 12px;
-    font-size: 22px;
-  }
-  .wheelBox {
-    position: relative;
-    width: 380px;
-    height: 380px;
-    margin: 0 auto 18px;
-  }
-  canvas {
-    width: 380px;
-    height: 380px;
-    border-radius: 50%;
-    filter: drop-shadow(0 12px 24px rgba(0,0,0,.18));
-    transition: transform 4s cubic-bezier(.12,.72,.08,1);
-  }
-  .pointer {
-    position: absolute;
-    right: -2px;
-    top: 50%;
-    width: 0;
-    height: 0;
-    transform: translateY(-50%);
-    border-top: 18px solid transparent;
-    border-bottom: 18px solid transparent;
-    border-right: 42px solid #111827;
-    z-index: 2;
-  }
-  button {
-    border: 0;
-    border-radius: 12px;
-    padding: 12px 22px;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    color: white;
-    background: #2563eb;
-  }
-  button:disabled {
-    opacity: .55;
-    cursor: not-allowed;
-  }
-  .result {
-    margin-top: 14px;
-    font-size: 20px;
-    font-weight: 800;
-    min-height: 30px;
-  }
-  .hint {
-    margin-top: 10px;
-    font-size: 13px;
-    opacity: .7;
-  }
-</style>
+  <meta charset="utf-8" />
+  <title>Spin Wheel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #eef0f7;
+      color: #111827;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+    }
+
+    .app {
+      width: min(925px, 100vw);
+      height: min(720px, 100vh);
+      margin: 0 auto;
+      padding: 16px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 16px;
+      overflow: hidden;
+    }
+
+    .wheel-panel,
+    .editor-panel {
+      min-width: 0;
+      min-height: 0;
+      background: #ffffff;
+      border: 1px solid rgba(17, 24, 39, 0.08);
+      border-radius: 24px;
+      box-shadow: 0 14px 34px rgba(17, 24, 39, 0.10);
+      overflow: hidden;
+    }
+
+    .wheel-panel {
+      padding: 18px;
+      display: grid;
+      grid-template-rows: 1fr auto;
+      justify-items: center;
+      gap: 14px;
+    }
+
+    .wheel-stage {
+      width: 100%;
+      min-height: 0;
+      display: grid;
+      place-items: center;
+    }
+
+    .wheel-wrap {
+      position: relative;
+      width: min(520px, 100%, calc(100vh - 110px));
+      aspect-ratio: 1 / 1;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      border-radius: 50%;
+      cursor: pointer;
+      filter: drop-shadow(0 14px 26px rgba(17, 24, 39, 0.22));
+      transition: transform 3.9s cubic-bezier(.12, .74, .08, 1);
+    }
+
+    canvas.is-disabled {
+      cursor: not-allowed;
+    }
+
+    .pointer {
+      position: absolute;
+      right: -10px;
+      top: 50%;
+      width: 0;
+      height: 0;
+      transform: translateY(-50%);
+      border-top: 18px solid transparent;
+      border-bottom: 18px solid transparent;
+      border-right: 44px solid #111827;
+      z-index: 2;
+      pointer-events: none;
+      filter: drop-shadow(0 4px 8px rgba(17, 24, 39, 0.28));
+    }
+
+    .controls {
+      width: 100%;
+      display: grid;
+      justify-items: center;
+      gap: 10px;
+    }
+
+    .result {
+      min-height: 28px;
+      font-size: 21px;
+      font-weight: 850;
+      text-align: center;
+    }
+
+    .editor-panel {
+      padding: 16px;
+      display: grid;
+      grid-template-rows: auto 1fr auto auto;
+      gap: 12px;
+    }
+
+    .add-box {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+    }
+
+    .text-input {
+      width: 100%;
+      min-width: 0;
+      height: 38px;
+      padding: 0 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 12px;
+      background: #ffffff;
+      color: #111827;
+      outline: none;
+    }
+
+    .text-input:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+    }
+
+    .add-button {
+      height: 38px;
+      padding: 0 12px;
+      border-radius: 12px;
+      background: #111827;
+      color: #ffffff;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .option-list {
+      min-height: 0;
+      display: grid;
+      align-content: start;
+      gap: 7px;
+      overflow: hidden;
+    }
+
+    .option-row {
+      display: grid;
+      grid-template-columns: 24px 28px minmax(0, 1fr) 34px;
+      gap: 7px;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .option-toggle {
+      width: 18px;
+      height: 18px;
+      margin: 0 auto;
+      accent-color: #2563eb;
+      cursor: pointer;
+    }
+
+    .option-row.is-disabled .option-number,
+    .option-row.is-disabled .text-input {
+      opacity: 0.58;
+    }
+
+    .option-row.is-disabled .text-input {
+      text-decoration: line-through;
+    }
+
+    .option-number {
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 10px;
+      background: #f3f4f6;
+      color: #4b5563;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .option-row .text-input {
+      height: 34px;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+
+    .delete-button {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: #fee2e2;
+      color: #991b1b;
+      font-size: 20px;
+      line-height: 1;
+      font-weight: 800;
+    }
+
+    .delete-button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .pager {
+      height: 34px;
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr) 34px;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .pager-button {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: #f3f4f6;
+      color: #111827;
+      font-weight: 900;
+    }
+
+    .pager-button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .pager-info {
+      text-align: center;
+      color: #6b7280;
+      font-size: 13px;
+      font-weight: 650;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .secondary-button {
+      height: 38px;
+      border-radius: 12px;
+      background: #f3f4f6;
+      color: #111827;
+      font-weight: 750;
+    }
+
+    .secondary-button:disabled,
+    .add-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  </style>
 </head>
+
 <body>
-  <div class="wrap">
-    <h2>Fortune wheel</h2>
+  <main class="app">
+    <section class="wheel-panel" aria-label="Selection wheel">
+      <div class="wheel-stage">
+        <div class="wheel-wrap">
+          <div class="pointer" aria-hidden="true"></div>
+          <canvas id="wheel" width="900" height="900" role="button" tabindex="0" aria-label="Spin the wheel"></canvas>
+        </div>
+      </div>
 
-    <div class="wheelBox">
-      <div class="pointer"></div>
-      <canvas id="wheel" width="760" height="760"></canvas>
-    </div>
+      <div class="controls">
+        <div class="result" id="result" aria-live="polite"></div>
+      </div>
+    </section>
 
-    <button id="spin">Крутить</button>
-    <div class="result" id="result"></div>
-    <div class="hint">Edit items' array in code to replace the options.</div>
-  </div>
+    <aside class="editor-panel" aria-label="Options editor">
+      <div class="add-box">
+        <input class="text-input" id="newItemInput" type="text" placeholder="New option" maxlength="32" />
+        <button class="add-button" id="addButton" type="button">Add</button>
+      </div>
 
-<script>
-const items = [
-  "Option 1",
-  "Option 2",
-  "Option 3",
-  "Option 4",
-  "Option 5",
-  "Option 6"
-];
+      <div class="option-list" id="optionList"></div>
 
-const colors = ["#93c5fd", "#bfdbfe", "#a7f3d0", "#fde68a", "#fecaca", "#ddd6fe"];
-const canvas = document.getElementById("wheel");
-const ctx = canvas.getContext("2d");
-const spinBtn = document.getElementById("spin");
-const resultEl = document.getElementById("result");
+      <div class="pager">
+        <button class="pager-button" id="prevPageButton" type="button" aria-label="Previous page">‹</button>
+        <div class="pager-info" id="pagerInfo">1 of 1</div>
+        <button class="pager-button" id="nextPageButton" type="button" aria-label="Next page">›</button>
+      </div>
 
-let rotation = 0;
-let spinning = false;
+      <div class="toolbar">
+        <button class="secondary-button" id="resetButton" type="button">Reset</button>
+        <button class="secondary-button" id="shuffleButton" type="button">Shuffle</button>
+      </div>
+    </aside>
+  </main>
 
-function drawWheel() {
-  const size = canvas.width;
-  const cx = size / 2;
-  const cy = size / 2;
-  const radius = size / 2 - 18;
-  const slice = Math.PI * 2 / items.length;
+  <script>
+    const STORAGE_KEY = "holst-spin-wheel-items-v2";
+    const PAGE_SIZE = 10;
+    const SPIN_MS = 3900;
 
-  ctx.clearRect(0, 0, size, size);
+    const FALLBACK_ITEMS = [
+      "Option 1",
+      "Option 2",
+      "Option 3",
+      "Option 4",
+      "Option 5",
+      "Option 6"
+    ];
 
-  for (let i = 0; i < items.length; i++) {
-    const start = i * slice;
-    const end = start + slice;
+    const URL_DEFAULT_ITEMS = readDefaultItemsFromUrl();
+    const DEFAULT_ITEMS = URL_DEFAULT_ITEMS ? cloneItems(URL_DEFAULT_ITEMS) : normalizeItems(FALLBACK_ITEMS);
 
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.arc(cx, cy, radius, start, end);
-    ctx.closePath();
-    ctx.fillStyle = colors[i % colors.length];
-    ctx.fill();
+    const COLORS = [
+      "#93c5fd",
+      "#a7f3d0",
+      "#fde68a",
+      "#fecaca",
+      "#ddd6fe",
+      "#bfdbfe",
+      "#fbcfe8",
+      "#bbf7d0",
+      "#fed7aa",
+      "#c4b5fd"
+    ];
 
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(start + slice / 2);
-    ctx.textAlign = "right";
-    ctx.fillStyle = "#111827";
-    ctx.font = "bold 30px system-ui, sans-serif";
-    ctx.fillText(items[i], radius - 28, 10);
-    ctx.restore();
-  }
+    const canvas = document.getElementById("wheel");
+    const ctx = canvas.getContext("2d");
 
-  ctx.beginPath();
-  ctx.arc(cx, cy, 54, 0, Math.PI * 2);
-  ctx.fillStyle = "#111827";
-  ctx.fill();
+    const result = document.getElementById("result");
 
-  ctx.fillStyle = "white";
-  ctx.font = "bold 24px system-ui, sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText("SPIN", cx, cy + 8);
-}
+    const optionList = document.getElementById("optionList");
+    const newItemInput = document.getElementById("newItemInput");
+    const addButton = document.getElementById("addButton");
+    const resetButton = document.getElementById("resetButton");
+    const shuffleButton = document.getElementById("shuffleButton");
+    const prevPageButton = document.getElementById("prevPageButton");
+    const nextPageButton = document.getElementById("nextPageButton");
+    const pagerInfo = document.getElementById("pagerInfo");
 
-function getSelectedIndex(finalDegrees) {
-  const normalized = ((finalDegrees % 360) + 360) % 360;
-  const pointerAngle = 0;
-  const sliceDegrees = 360 / items.length;
-  const wheelAngleAtPointer = (360 - normalized + pointerAngle) % 360;
-  return Math.floor(wheelAngleAtPointer / sliceDegrees);
-}
+    let items = loadItems();
+    let currentPage = 0;
+    let rotation = 0;
+    let spinning = false;
 
-spinBtn.addEventListener("click", () => {
-  if (spinning) return;
+    function createItem(label, enabled = true) {
+      return {
+        label: String(label ?? "").slice(0, 32),
+        enabled: enabled !== false
+      };
+    }
 
-  spinning = true;
-  spinBtn.disabled = true;
-  resultEl.textContent = "";
+    function cloneItems(sourceItems) {
+      return sourceItems.map((item) => createItem(item.label, item.enabled));
+    }
 
-  const extraSpins = 5 + Math.floor(Math.random() * 4);
-  const randomStop = Math.random() * 360;
-  rotation += extraSpins * 360 + randomStop;
+    function normalizeItems(rawItems) {
+      if (!Array.isArray(rawItems)) {
+        return [];
+      }
 
-  canvas.style.transform = "rotate(" + rotation + "deg)";
+      return rawItems
+        .map((item) => {
+          if (item && typeof item === "object" && !Array.isArray(item)) {
+            return createItem(item.label ?? item.value ?? item.text ?? "", item.enabled !== false);
+          }
 
-  setTimeout(() => {
-    const index = getSelectedIndex(rotation);
-    resultEl.textContent = "Выпало: " + items[index];
-    spinning = false;
-    spinBtn.disabled = false;
-  }, 4200);
-});
+          return createItem(item, true);
+        })
+        .filter((item) => item.label.trim().length > 0);
+    }
 
-drawWheel();
-</script>
+    function readDisabledIndexes(params) {
+      return new Set(
+        params.getAll("disabled")
+          .flatMap((value) => value.split(","))
+          .map((value) => Number(value))
+          .filter((value) => Number.isInteger(value) && value >= 0)
+      );
+    }
+
+    function readDefaultItemsFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const explicitItems = params.getAll("item");
+      const rawItems = explicitItems.length > 0
+        ? explicitItems
+        : params.getAll("items").flatMap((value) => value.split(","));
+      const disabledIndexes = readDisabledIndexes(params);
+
+      const urlItems = rawItems
+        .map((item, index) => createItem(String(item).trim(), !disabledIndexes.has(index)))
+        .filter((item) => item.label.trim().length > 0);
+
+      return urlItems.length >= 2 ? urlItems : null;
+    }
+
+    function loadItems() {
+      if (URL_DEFAULT_ITEMS) {
+        return cloneItems(URL_DEFAULT_ITEMS);
+      }
+
+      try {
+        const savedItems = normalizeItems(JSON.parse(localStorage.getItem(STORAGE_KEY)));
+
+        if (savedItems.length >= 2) {
+          return savedItems;
+        }
+      } catch (error) {
+        // If localStorage is corrupted, fall back to the default options.
+      }
+
+      return cloneItems(DEFAULT_ITEMS);
+    }
+
+    function saveItems() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+      syncUrlItems();
+    }
+
+    function syncUrlItems() {
+      try {
+        const url = new URL(window.location.href);
+
+        url.searchParams.delete("item");
+        url.searchParams.delete("items");
+        url.searchParams.delete("disabled");
+
+        items.forEach((item, index) => {
+          url.searchParams.append("item", getItemLabel(item, index).slice(0, 32));
+
+          if (!item.enabled) {
+            url.searchParams.append("disabled", String(index));
+          }
+        });
+
+        window.history.replaceState(null, "", `${url.search}${url.hash}`);
+      } catch (error) {
+        // In rare environments without the History API, the wheel should keep working.
+      }
+    }
+
+    function getItemLabel(item, index) {
+      const value = String(item.label || "").trim();
+      return value || `Option ${index + 1}`;
+    }
+
+    function getActiveDisplayItems() {
+      return items
+        .map((item, index) => item.enabled ? getItemLabel(item, index) : null)
+        .filter(Boolean);
+    }
+
+    function clampPage() {
+      const pageCount = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+
+      if (currentPage < 0) {
+        currentPage = 0;
+      }
+
+      if (currentPage > pageCount - 1) {
+        currentPage = pageCount - 1;
+      }
+
+      return pageCount;
+    }
+
+    function setEditorDisabled(disabled) {
+      newItemInput.disabled = disabled;
+      addButton.disabled = disabled;
+      resetButton.disabled = disabled;
+      shuffleButton.disabled = disabled;
+      prevPageButton.disabled = disabled || currentPage <= 0;
+      nextPageButton.disabled = disabled || currentPage >= Math.ceil(items.length / PAGE_SIZE) - 1;
+
+      optionList.querySelectorAll("input, button").forEach((element) => {
+        element.disabled = disabled || (element.classList.contains("delete-button") && items.length <= 2);
+      });
+    }
+
+    function setWheelDisabled(disabled) {
+      canvas.classList.toggle("is-disabled", disabled);
+      canvas.setAttribute("aria-disabled", String(disabled));
+    }
+
+    function renderEditor() {
+      const pageCount = clampPage();
+      const start = currentPage * PAGE_SIZE;
+      const end = Math.min(start + PAGE_SIZE, items.length);
+
+      optionList.innerHTML = "";
+
+      for (let index = start; index < end; index++) {
+        const item = items[index];
+        const row = document.createElement("div");
+        row.className = `option-row${item.enabled ? "" : " is-disabled"}`;
+
+        const toggle = document.createElement("input");
+        toggle.className = "option-toggle";
+        toggle.type = "checkbox";
+        toggle.checked = item.enabled;
+        toggle.title = "Included in wheel";
+        toggle.setAttribute("aria-label", `Included in wheel: ${getItemLabel(item, index)}`);
+        toggle.dataset.index = index;
+
+        const number = document.createElement("div");
+        number.className = "option-number";
+        number.textContent = index + 1;
+
+        const input = document.createElement("input");
+        input.className = "text-input";
+        input.type = "text";
+        input.maxLength = 32;
+        input.value = item.label;
+        input.dataset.index = index;
+
+        const deleteButton = document.createElement("button");
+        deleteButton.className = "delete-button";
+        deleteButton.type = "button";
+        deleteButton.textContent = "×";
+        deleteButton.title = "Delete option";
+        deleteButton.dataset.index = index;
+        deleteButton.disabled = items.length <= 2;
+
+        row.append(toggle, number, input, deleteButton);
+        optionList.append(row);
+      }
+
+      const from = items.length === 0 ? 0 : start + 1;
+      const to = end;
+
+      pagerInfo.textContent = pageCount > 1
+        ? `${from}–${to} of ${items.length}`
+        : `${items.length} options`;
+
+      prevPageButton.disabled = currentPage <= 0;
+      nextPageButton.disabled = currentPage >= pageCount - 1;
+
+      setWheelDisabled(getActiveDisplayItems().length < 2 || spinning);
+    }
+
+    function drawWheel() {
+      const labels = getActiveDisplayItems();
+      const size = canvas.width;
+      const center = size / 2;
+      const radius = center - 20;
+      const slice = labels.length > 0 ? Math.PI * 2 / labels.length : 0;
+
+      ctx.clearRect(0, 0, size, size);
+
+      labels.forEach((label, index) => {
+        const start = index * slice;
+        const end = start + slice;
+        const middle = start + slice / 2;
+
+        ctx.beginPath();
+        ctx.moveTo(center, center);
+        ctx.arc(center, center, radius, start, end);
+        ctx.closePath();
+        ctx.fillStyle = COLORS[index % COLORS.length];
+        ctx.fill();
+
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.88)";
+        ctx.stroke();
+
+        ctx.save();
+        ctx.translate(center, center);
+        ctx.rotate(middle);
+
+        const shortenedLabel = label.length > 24
+          ? `${label.slice(0, 23)}…`
+          : label;
+
+        const baseFontSize = labels.length > 14 ? 18 : labels.length > 10 ? 21 : 26;
+        const adaptiveFontSize = Math.max(14, Math.min(baseFontSize, Math.floor(360 / Math.max(8, shortenedLabel.length))));
+
+        ctx.fillStyle = "#111827";
+        ctx.font = `800 ${adaptiveFontSize}px system-ui, -apple-system, Segoe UI, sans-serif`;
+
+        const isLeftSide = middle > Math.PI / 2 && middle < Math.PI * 1.5;
+        const maxTextWidth = radius * 0.58;
+
+        if (isLeftSide) {
+          ctx.rotate(Math.PI);
+          ctx.textAlign = "left";
+          ctx.fillText(shortenedLabel, -radius + 34, adaptiveFontSize * 0.35, maxTextWidth);
+        } else {
+          ctx.textAlign = "right";
+          ctx.fillText(shortenedLabel, radius - 34, adaptiveFontSize * 0.35, maxTextWidth);
+        }
+
+        ctx.restore();
+      });
+
+      ctx.beginPath();
+      ctx.arc(center, center, 74, 0, Math.PI * 2);
+      ctx.fillStyle = "#111827";
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(center, center, 56, 0, Math.PI * 2);
+      ctx.fillStyle = "#2563eb";
+      ctx.fill();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = "900 32px system-ui, -apple-system, Segoe UI, sans-serif";
+      ctx.fillText("spin", center, center);
+
+    }
+
+    function modulo(value, divisor) {
+      return ((value % divisor) + divisor) % divisor;
+    }
+
+    function randomInt(maxExclusive) {
+      if (maxExclusive <= 0) {
+        return 0;
+      }
+
+      if (window.crypto && typeof window.crypto.getRandomValues === "function") {
+        const range = 0x100000000;
+        const limit = range - (range % maxExclusive);
+        const buffer = new Uint32Array(1);
+
+        do {
+          window.crypto.getRandomValues(buffer);
+        } while (buffer[0] >= limit);
+
+        return buffer[0] % maxExclusive;
+      }
+
+      return Math.floor(Math.random() * maxExclusive);
+    }
+
+    function spinWheel() {
+      const labels = getActiveDisplayItems();
+
+      if (spinning || labels.length < 2) {
+        return;
+      }
+
+      spinning = true;
+      setWheelDisabled(true);
+      setEditorDisabled(true);
+      const winnerIndex = randomInt(labels.length);
+
+      const sliceDegrees = 360 / labels.length;
+      const winnerCenterDegrees = winnerIndex * sliceDegrees + sliceDegrees / 2;
+
+      const targetRotationMod = modulo(360 - winnerCenterDegrees, 360);
+      const currentRotationMod = modulo(rotation, 360);
+      const deltaToTarget = modulo(targetRotationMod - currentRotationMod, 360);
+
+      const fullSpins = 5 + randomInt(4);
+      rotation += fullSpins * 360 + deltaToTarget;
+
+      canvas.style.transform = `rotate(${rotation}deg)`;
+
+      window.setTimeout(() => {
+        result.textContent = labels[winnerIndex];
+        spinning = false;
+        renderEditor();
+        setEditorDisabled(false);
+      }, SPIN_MS + 120);
+    }
+
+    function addItem() {
+      if (spinning) {
+        return;
+      }
+
+      const value = newItemInput.value.trim() || `Option ${items.length + 1}`;
+
+      items.push(createItem(value.slice(0, 32), true));
+      newItemInput.value = "";
+      currentPage = Math.ceil(items.length / PAGE_SIZE) - 1;
+
+      saveItems();
+      renderEditor();
+      drawWheel();
+
+      newItemInput.focus();
+    }
+
+    function deleteItem(index) {
+      if (spinning || items.length <= 2) {
+        return;
+      }
+
+      items.splice(index, 1);
+
+      saveItems();
+      renderEditor();
+      drawWheel();
+
+    }
+
+    function resetItems() {
+      if (spinning) {
+        return;
+      }
+
+      items = cloneItems(DEFAULT_ITEMS);
+      currentPage = 0;
+      rotation = 0;
+      canvas.style.transition = "none";
+      canvas.style.transform = "rotate(0deg)";
+
+      window.requestAnimationFrame(() => {
+        canvas.style.transition = "";
+      });
+
+      saveItems();
+      renderEditor();
+      drawWheel();
+
+      result.textContent = "";
+    }
+
+    function shuffleItems() {
+      if (spinning) {
+        return;
+      }
+
+      for (let index = items.length - 1; index > 0; index--) {
+        const randomIndex = randomInt(index + 1);
+        [items[index], items[randomIndex]] = [items[randomIndex], items[index]];
+      }
+
+      saveItems();
+      renderEditor();
+      drawWheel();
+
+    }
+
+    canvas.addEventListener("click", spinWheel);
+    canvas.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        spinWheel();
+      }
+    });
+
+    addButton.addEventListener("click", addItem);
+    resetButton.addEventListener("click", resetItems);
+    shuffleButton.addEventListener("click", shuffleItems);
+
+    newItemInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        addItem();
+      }
+    });
+
+    optionList.addEventListener("input", (event) => {
+      const input = event.target;
+
+      if (!input.matches("input[data-index]")) {
+        return;
+      }
+
+      const index = Number(input.dataset.index);
+
+      if (input.classList.contains("option-toggle")) {
+        items[index].enabled = input.checked;
+        saveItems();
+        renderEditor();
+        drawWheel();
+        return;
+      }
+
+      items[index].label = input.value.slice(0, 32);
+
+      saveItems();
+      drawWheel();
+
+    });
+
+    optionList.addEventListener("click", (event) => {
+      const button = event.target;
+
+      if (!button.matches("button[data-index]")) {
+        return;
+      }
+
+      deleteItem(Number(button.dataset.index));
+    });
+
+    prevPageButton.addEventListener("click", () => {
+      currentPage -= 1;
+      renderEditor();
+    });
+
+    nextPageButton.addEventListener("click", () => {
+      currentPage += 1;
+      renderEditor();
+    });
+
+    renderEditor();
+    drawWheel();
+    syncUrlItems();
+  </script>
 </body>
 </html>
